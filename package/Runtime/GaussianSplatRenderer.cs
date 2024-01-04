@@ -106,7 +106,12 @@ namespace GaussianSplatting.Runtime
             foreach (var kvp in m_ActiveSplats)
             {
                 var gs = kvp.Item1;
-                matComposite = gs.m_MatComposite;
+                if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended){
+                    matComposite = gs.m_MatCompositeWeighted;
+                } else {
+                    matComposite = gs.m_MatComposite;
+                }
+                
                 var mpb = kvp.Item2;
 
                 // sort
@@ -123,14 +128,19 @@ namespace GaussianSplatting.Runtime
                     GaussianSplatRenderer.RenderMode.DebugPointIndices => gs.m_MatDebugPoints,
                     GaussianSplatRenderer.RenderMode.DebugBoxes => gs.m_MatDebugBoxes,
                     GaussianSplatRenderer.RenderMode.DebugChunkBounds => gs.m_MatDebugBoxes,
+                    GaussianSplatRenderer.RenderMode.WeightedBlended => gs.m_MatSplatsWeighted,
+                    GaussianSplatRenderer.RenderMode.HashedAlpha => gs.m_MatSplatsStochastic,
+                    GaussianSplatRenderer.RenderMode.BlueNoiseAlpha => gs.m_MatSplatsStochastic,
                     _ => gs.m_MatSplats
                 };
                 if (displayMat == null)
                     continue;
 
                 gs.SetAssetDataOnMaterial(mpb);
+                mpb.SetInt(GaussianSplatRenderer.Props.SplatMSAASamples, (int)gs.m_MSAASamples);
                 mpb.SetBuffer(GaussianSplatRenderer.Props.SplatChunks, gs.m_GpuChunks);
-
+                mpb.SetInt(GaussianSplatRenderer.Props.Sort, gs.m_Sort ? 1 : 0);
+                mpb.SetInt(GaussianSplatRenderer.Props.WeightEq, gs.m_WeightEq);
                 mpb.SetBuffer(GaussianSplatRenderer.Props.SplatViewData, gs.m_GpuView);
 
                 mpb.SetBuffer(GaussianSplatRenderer.Props.OrderBuffer, gs.m_GpuSortKeys);
@@ -155,9 +165,62 @@ namespace GaussianSplatting.Runtime
                 if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.DebugChunkBounds)
                     instanceCount = gs.m_GpuChunksValid ? gs.m_GpuChunks.count : 0;
 
-                cmb.BeginSample(s_ProfDraw);
-                cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
-                cmb.EndSample(s_ProfDraw);
+                bool stochastic = (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.BlueNoiseAlpha) || (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.HashedAlpha);
+
+                if (stochastic)
+                {
+                    if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.BlueNoiseAlpha) {
+                        mpb.SetInt(GaussianSplatRenderer.Props.UseBlueNoise, 1);
+                        if (gs.m_TexBlueNoise)
+                            Shader.SetGlobalTexture("_HAT_BlueNoise", gs.m_TexBlueNoise);
+                    } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.HashedAlpha) {
+                        mpb.SetInt(GaussianSplatRenderer.Props.UseBlueNoise, 0);
+                    }
+                    
+                    // Temporary RenderTexture for MSAA
+                    RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor(-1, -1, RenderTextureFormat.Default, 0);
+                    msaaRTDesc.msaaSamples = (int)gs.m_MSAASamples;
+                    msaaRTDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+                    msaaRTDesc.depthBufferBits = 24;
+                    
+                    cmb.GetTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT, msaaRTDesc, FilterMode.Point);
+                    cmb.SetRenderTarget(GaussianSplatRenderer.Props.IntermediateRT, BuiltinRenderTextureType.CurrentActive);
+                    cmb.ClearRenderTarget(RTClearFlags.Color, new Color(0, 0, 0, 0), 1.0f, 0);
+
+                    cmb.BeginSample(s_ProfDraw);
+                    cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
+                    cmb.EndSample(s_ProfDraw);
+
+                    // Blit back to GaussianSplatRT
+                    cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
+
+                } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended) {
+
+                    // Accum
+                    m_CommandBuffer.GetTemporaryRT(GaussianSplatRenderer.Props.AccumulationRT, -1, -1, 0, FilterMode.Point, GraphicsFormat.R16G16B16A16_SFloat);
+                    m_CommandBuffer.SetRenderTarget(GaussianSplatRenderer.Props.AccumulationRT);
+                    m_CommandBuffer.ClearRenderTarget(false, true, new Color(0.0f, 0.0f, 0.0f, 0.0f));
+
+                    // Revealage
+                    m_CommandBuffer.GetTemporaryRT(GaussianSplatRenderer.Props.RevealageRT, -1, -1, 0, FilterMode.Point, GraphicsFormat.R16G16B16A16_SFloat);
+                    m_CommandBuffer.SetRenderTarget(GaussianSplatRenderer.Props.RevealageRT);
+                    m_CommandBuffer.ClearRenderTarget(false, true, new Color(1.0f, 1.0f, 1.0f, 1.0f));
+
+                    // MRT
+                    RenderTargetIdentifier[] mrt = new RenderTargetIdentifier[2];
+                    mrt[0] = new(GaussianSplatRenderer.Props.AccumulationRT);
+                    mrt[1] = new(GaussianSplatRenderer.Props.RevealageRT);
+                    m_CommandBuffer.SetRenderTarget(mrt, BuiltinRenderTextureType.CurrentActive);
+
+                    cmb.BeginSample(s_ProfDraw);
+                    cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
+                    cmb.EndSample(s_ProfDraw);
+                } else {
+                    // The classic way
+                    cmb.BeginSample(s_ProfDraw);
+                    cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
+                    cmb.EndSample(s_ProfDraw);
+                }
             }
             return matComposite;
         }
@@ -197,7 +260,10 @@ namespace GaussianSplatting.Runtime
             m_CommandBuffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
             m_CommandBuffer.DrawProcedural(Matrix4x4.identity, matComposite, 0, MeshTopology.Triangles, 3, 1);
             m_CommandBuffer.EndSample(s_ProfCompose);
+
             m_CommandBuffer.ReleaseTemporaryRT(GaussianSplatRenderer.Props.GaussianSplatRT);
+            m_CommandBuffer.ReleaseTemporaryRT(GaussianSplatRenderer.Props.AccumulationRT);
+            m_CommandBuffer.ReleaseTemporaryRT(GaussianSplatRenderer.Props.RevealageRT);
         }
     }
 
@@ -207,11 +273,23 @@ namespace GaussianSplatting.Runtime
         public enum RenderMode
         {
             Splats,
+            HashedAlpha,
+            BlueNoiseAlpha,
+            WeightedBlended,
             DebugPoints,
             DebugPointIndices,
             DebugBoxes,
             DebugChunkBounds,
         }
+
+        public enum MSAASamples
+        {
+            One = 1,
+            Two = 2,
+            Four = 4,
+            Eight = 8
+        }
+
         public GaussianSplatAsset m_Asset;
 
         [Range(0.1f, 2.0f)] [Tooltip("Additional scaling factor for the splats")]
@@ -226,17 +304,31 @@ namespace GaussianSplatting.Runtime
         [Range(1,30)] [Tooltip("Sort splats only every N frames")]
         public int m_SortNthFrame = 1;
 
+        [Tooltip("MSAA samples")]
+        public MSAASamples m_MSAASamples = MSAASamples.Eight;
+
+        [Tooltip("Use sorting for splats")]
+        public bool m_Sort = true;
+
         public RenderMode m_RenderMode = RenderMode.Splats;
         [Range(1.0f,15.0f)] public float m_PointDisplaySize = 3.0f;
 
         public GaussianCutout[] m_Cutouts;
 
         public Shader m_ShaderSplats;
+        public Shader m_ShaderSplatsStochastic;
+        public Shader m_ShaderSplatsWeighted;
         public Shader m_ShaderComposite;
+        public Shader m_ShaderCompositeWeighted;
         public Shader m_ShaderDebugPoints;
         public Shader m_ShaderDebugBoxes;
         [Tooltip("Gaussian splatting compute shader")]
         public ComputeShader m_CSSplatUtilities;
+
+        public Texture2DArray m_TexBlueNoise;
+
+        [Range(0, 3)]
+        public int m_WeightEq = 1;
 
         int m_SplatCount; // initially same as asset splat count, but editing can change this
         GraphicsBuffer m_GpuSortDistances;
@@ -263,7 +355,10 @@ namespace GaussianSplatting.Runtime
         GpuSorting.Args m_SorterArgs;
 
         internal Material m_MatSplats;
+        internal Material m_MatSplatsStochastic;
+        internal Material m_MatSplatsWeighted;
         internal Material m_MatComposite;
+        internal Material m_MatCompositeWeighted;
         internal Material m_MatDebugPoints;
         internal Material m_MatDebugBoxes;
 
@@ -275,6 +370,7 @@ namespace GaussianSplatting.Runtime
 
         internal static class Props
         {
+            
             public static readonly int SplatPos = Shader.PropertyToID("_SplatPos");
             public static readonly int SplatOther = Shader.PropertyToID("_SplatOther");
             public static readonly int SplatSH = Shader.PropertyToID("_SplatSH");
@@ -296,6 +392,9 @@ namespace GaussianSplatting.Runtime
             public static readonly int DisplayIndex = Shader.PropertyToID("_DisplayIndex");
             public static readonly int DisplayChunks = Shader.PropertyToID("_DisplayChunks");
             public static readonly int GaussianSplatRT = Shader.PropertyToID("_GaussianSplatRT");
+            public static readonly int IntermediateRT = Shader.PropertyToID("_IntermediateRT"); 
+            public static readonly int AccumulationRT = Shader.PropertyToID("_AccumulationRT");
+            public static readonly int RevealageRT = Shader.PropertyToID("_RevealageRT");
             public static readonly int SplatSortKeys = Shader.PropertyToID("_SplatSortKeys");
             public static readonly int SplatSortDistances = Shader.PropertyToID("_SplatSortDistances");
             public static readonly int SrcBuffer = Shader.PropertyToID("_SrcBuffer");
@@ -316,6 +415,10 @@ namespace GaussianSplatting.Runtime
             public static readonly int SelectionMode = Shader.PropertyToID("_SelectionMode");
             public static readonly int SplatPosMouseDown = Shader.PropertyToID("_SplatPosMouseDown");
             public static readonly int SplatOtherMouseDown = Shader.PropertyToID("_SplatOtherMouseDown");
+            public static readonly int SplatMSAASamples = Shader.PropertyToID("_SplatMSAASamples");
+            public static readonly int UseBlueNoise = Shader.PropertyToID("_UseBlueNoise");
+            public static readonly int Sort = Shader.PropertyToID("_Sort");
+            public static readonly int WeightEq = Shader.PropertyToID("_Equation");
         }
 
         [field: NonSerialized] public bool editModified { get; private set; }
@@ -433,13 +536,16 @@ namespace GaussianSplatting.Runtime
         public void OnEnable()
         {
             m_FrameCounter = 0;
-            if (m_ShaderSplats == null || m_ShaderComposite == null || m_ShaderDebugPoints == null || m_ShaderDebugBoxes == null || m_CSSplatUtilities == null)
+            if (m_ShaderSplats == null|| m_ShaderSplatsStochastic == null || m_ShaderSplatsWeighted == null || m_ShaderComposite == null || m_ShaderDebugPoints == null || m_ShaderDebugBoxes == null || m_CSSplatUtilities == null)
                 return;
             if (!SystemInfo.supportsComputeShaders)
                 return;
 
             m_MatSplats = new Material(m_ShaderSplats) {name = "GaussianSplats"};
+            m_MatSplatsStochastic = new Material(m_ShaderSplatsStochastic) {name = "GaussianSplatsStochastic"};
+            m_MatSplatsWeighted = new Material(m_ShaderSplatsWeighted) {name = "GaussianSplatsWeighted"};
             m_MatComposite = new Material(m_ShaderComposite) {name = "GaussianClearDstAlpha"};
+            m_MatCompositeWeighted = new Material(m_ShaderCompositeWeighted) {name = "GaussianClearDstAlphaWeighted"};
             m_MatDebugPoints = new Material(m_ShaderDebugPoints) {name = "GaussianDebugPoints"};
             m_MatDebugBoxes = new Material(m_ShaderDebugBoxes) {name = "GaussianDebugBoxes"};
 
@@ -535,6 +641,8 @@ namespace GaussianSplatting.Runtime
             GaussianSplatRenderSystem.instance.UnregisterSplat(this);
 
             DestroyImmediate(m_MatSplats);
+            DestroyImmediate(m_MatSplatsStochastic);
+            DestroyImmediate(m_MatSplatsWeighted);
             DestroyImmediate(m_MatComposite);
             DestroyImmediate(m_MatDebugPoints);
             DestroyImmediate(m_MatDebugBoxes);
