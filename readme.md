@@ -1,4 +1,11 @@
-# Gaussian Splatting playground in Unity
+ @aras-p Gaussian Splatting implementation for unity, but with two Order Independent Transparency methods, *hashed/blue noise alpha* and *weighted blended OIT*.
+ 
+Weighted Blended OIT: https://docs.nvidia.com/gameworks/content/gameworkslibrary/graphicssamples/opengl_samples/weightedblendedoitsample.htm
+
+Hashed Alpha OIT: https://casual-effects.com/research/Wyman2017Hashed/index.html
+ 
+# OG readme:
+# Gaussian Splatting pl``ayground in Unity
 
 SIGGRAPH 2023 had a paper "[**3D Gaussian Splatting for Real-Time Radiance Field Rendering**](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)" by Kerbl, Kopanas, Leimkühler, Drettakis
 that is really cool! Check out their website, source code repository, data sets and so on. I've decided to try to implement the realtime visualization part (i.e. the one that takes already-produced
