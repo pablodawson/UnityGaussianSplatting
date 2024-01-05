@@ -15,7 +15,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
         Pass
         {
             ZWrite [_ZWrite]
-            Blend [_SrcBlend] [_DstBlend]
+            Blend One One
             Cull Off
             
 CGPROGRAM
@@ -67,8 +67,8 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 		} else {
 
 			float3 hatCoord;
-			hatCoord.xy = vertex.xy; //@TODO better coord?
-			hatCoord.z = idx * 8 + i;
+			hatCoord.xy = vertex.xy;
+			hatCoord.z = (idx + 1) * (i + 1);
 			uint4 coord;
 			coord.xyz = (uint3)hatCoord;
 			coord.xyz &= 63;
