@@ -17,6 +17,7 @@ namespace GaussianSplatting.Runtime
     {
         // ReSharper disable MemberCanBePrivate.Global - used by HDRP/URP features that are not always compiled
         internal static readonly ProfilerMarker s_ProfDraw = new(ProfilerCategory.Render, "GaussianSplat.Draw", MarkerFlags.SampleGPU);
+        internal static readonly ProfilerMarker s_ProfDepth = new(ProfilerCategory.Render, "GaussianSplat.Depth", MarkerFlags.SampleGPU);
         internal static readonly ProfilerMarker s_ProfCompose = new(ProfilerCategory.Render, "GaussianSplat.Compose", MarkerFlags.SampleGPU);
         internal static readonly ProfilerMarker s_ProfCalcView = new(ProfilerCategory.Render, "GaussianSplat.CalcView", MarkerFlags.SampleGPU);
         // ReSharper restore MemberCanBePrivate.Global
@@ -103,6 +104,7 @@ namespace GaussianSplatting.Runtime
         public Material SortAndRenderSplats(Camera cam, CommandBuffer cmb)
         {
             Material matComposite = null;
+
             foreach (var kvp in m_ActiveSplats)
             {
                 var gs = kvp.Item1;
@@ -135,6 +137,11 @@ namespace GaussianSplatting.Runtime
                     _ => gs.m_MatSplats
                 };
                 if (displayMat == null)
+                    continue;
+                
+                Material matDepth = gs.m_MatDepth;
+
+                if (matDepth == null)
                     continue;
 
                 gs.SetAssetDataOnMaterial(mpb);
@@ -170,6 +177,7 @@ namespace GaussianSplatting.Runtime
 
                 if (stochastic)
                 {
+
                     if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.BlueNoiseAlpha) {
                         mpb.SetInt(GaussianSplatRenderer.Props.UseBlueNoise, 1);
                         if (gs.m_TexBlueNoise)
@@ -178,16 +186,22 @@ namespace GaussianSplatting.Runtime
                         mpb.SetInt(GaussianSplatRenderer.Props.UseBlueNoise, 0);
                     }
                     
-                    // Temporary RenderTexture for MSAA
-                    RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor(-1, -1, RenderTextureFormat.Default, 0);
+                    // Temporary RenderTexture for MSAA and depth
+                    RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor(-1, -1, RenderTextureFormat.Default);
                     msaaRTDesc.msaaSamples = (int)gs.m_MSAASamples;
                     msaaRTDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
-                    msaaRTDesc.depthBufferBits = 24;
+                    msaaRTDesc.depthBufferBits = 16;
                     
                     cmb.GetTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT, msaaRTDesc, FilterMode.Point);
-                    cmb.SetRenderTarget(GaussianSplatRenderer.Props.IntermediateRT, BuiltinRenderTextureType.CurrentActive);
-                    cmb.ClearRenderTarget(RTClearFlags.Color, new Color(0, 0, 0, 0), 1.0f, 0);
+                    cmb.SetRenderTarget(GaussianSplatRenderer.Props.IntermediateRT);
+                    cmb.ClearRenderTarget(RTClearFlags.ColorDepth, new Color(0, 0, 0, 0), 1.0f, 0);
 
+                    // Set depth buffer
+                    cmb.BeginSample(s_ProfDepth);
+                    cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, matDepth, 0, topology, indexCount, instanceCount, mpb);
+                    cmb.EndSample(s_ProfDepth);
+                    
+                    // Render color
                     cmb.BeginSample(s_ProfDraw);
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
                     cmb.EndSample(s_ProfDraw);
@@ -322,6 +336,7 @@ namespace GaussianSplatting.Runtime
         public Shader m_ShaderSplatsStochastic;
         public Shader m_ShaderSplatsWeighted;
         public Shader m_ShaderComposite;
+        public Shader m_ShaderCompositeDepth;
         public Shader m_ShaderCompositeWeighted;
         public Shader m_ShaderDebugPoints;
         public Shader m_ShaderDebugBoxes;
@@ -364,6 +379,7 @@ namespace GaussianSplatting.Runtime
         internal Material m_MatComposite;
         internal Material m_MatCompositeWeighted;
         internal Material m_MatDebugPoints;
+        internal Material m_MatDepthWrite;
         internal Material m_MatDebugBoxes;
 
         internal int m_FrameCounter;
@@ -546,14 +562,14 @@ namespace GaussianSplatting.Runtime
                 return;
 
             m_MatSplats = new Material(m_ShaderSplats) {name = "GaussianSplats"};
-            m_MatDepth = new Material(m_ShaderDepth) {name = "GaussianDepth"};
+            m_MatDepth = new Material(m_ShaderDepth) {name = "GaussianDepthWrite"};
             m_MatSplatsStochastic = new Material(m_ShaderSplatsStochastic) {name = "GaussianSplatsStochastic"};
             m_MatSplatsWeighted = new Material(m_ShaderSplatsWeighted) {name = "GaussianSplatsWeighted"};
             m_MatComposite = new Material(m_ShaderComposite) {name = "GaussianClearDstAlpha"};
             m_MatCompositeWeighted = new Material(m_ShaderCompositeWeighted) {name = "GaussianClearDstAlphaWeighted"};
             m_MatDebugPoints = new Material(m_ShaderDebugPoints) {name = "GaussianDebugPoints"};
             m_MatDebugBoxes = new Material(m_ShaderDebugBoxes) {name = "GaussianDebugBoxes"};
-
+        
             m_Sorter = new GpuSorting(m_CSSplatUtilities);
             GaussianSplatRenderSystem.instance.RegisterSplat(this);
 

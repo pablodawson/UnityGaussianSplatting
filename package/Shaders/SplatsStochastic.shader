@@ -16,6 +16,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
         {
             ZWrite [_ZWrite]
             //Blend One One
+			//ZTest Always
 			Blend [_SrcBlend] [_DstBlend]
             Cull Off
             

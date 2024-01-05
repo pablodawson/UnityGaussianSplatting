@@ -346,13 +346,15 @@ MonoBehaviour:
   m_SortNthFrame: 1
   m_MSAASamples: 8
   m_Sort: 1
-  m_RenderMode: 1
+  m_RenderMode: 4
   m_PointDisplaySize: 3
   m_Cutouts: []
+  m_ShaderDepth: {fileID: 4800000, guid: 6eeb6513710eb0b4e84aabe18e0e5fdc, type: 3}
   m_ShaderSplats: {fileID: 4800000, guid: ed800126ae8844a67aad1974ddddd59c, type: 3}
   m_ShaderSplatsStochastic: {fileID: 4800000, guid: c4bc5498982555e45bd58ee65b900a31, type: 3}
   m_ShaderSplatsWeighted: {fileID: 4800000, guid: f62fd18ab939fdd4ba99f4dc78242a19, type: 3}
   m_ShaderComposite: {fileID: 4800000, guid: 7e184af7d01193a408eb916d8acafff9, type: 3}
+  m_ShaderCompositeDepth: {fileID: 4800000, guid: ccb10767147e3454babcb84a501c3da9, type: 3}
   m_ShaderCompositeWeighted: {fileID: 4800000, guid: 5758e837040699641897bc68a83b5029, type: 3}
   m_ShaderDebugPoints: {fileID: 4800000, guid: b44409fc67214394f8f47e4e2648425e, type: 3}
   m_ShaderDebugBoxes: {fileID: 4800000, guid: 4006f2680fd7c8b4cbcb881454c782be, type: 3}

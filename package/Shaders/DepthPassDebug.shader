@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
-Shader "Gaussian Splatting/Render Splats Weighted"
+Shader "Gaussian Splatting/Render Splats Depth Weighted"
 {
     SubShader
     {
-        Tags { "RenderType"="Transparent" "Queue"="Transparent" }
-
+        Tags { "RenderType"="Geometry" "Queue"="Geometry" }
         Pass
         {
-            ZWrite Off
-            Blend 0 One One
-			Blend 1 Zero OneMinusSrcAlpha
+            ZWrite On
+            Blend 0 Zero Zero
+			Blend 1 Zero Zero
             Cull Off
             
 CGPROGRAM
@@ -56,9 +55,6 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 	}
 	else
 	{
-		o.col.r = f16tof32(view.color.x >> 16);
-		o.col.g = f16tof32(view.color.x);
-		o.col.b = f16tof32(view.color.y >> 16);
 		o.col.a = f16tof32(view.color.y);
 
 		uint idx = vtxID;
@@ -70,18 +66,6 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 		float2 deltaScreenPos = (quadPos.x * view.axis1 + quadPos.y * view.axis2) * 2 / _ScreenParams.xy;
 		o.vertex = centerClipPos;
 		o.vertex.xy += deltaScreenPos * centerClipPos.w;
-
-		// is this splat selected?
-		if (_SplatBitsValid)
-		{
-			uint wordIdx = instID / 32;
-			uint bitIdx = instID & 31;
-			uint selVal = _SplatSelectedBits.Load(wordIdx * 4);
-			if (selVal & (1 << bitIdx))
-			{
-				o.col.a = -1;				
-			}
-		}
 	}
     return o;
 }
@@ -97,45 +81,22 @@ float weight(float z, float alpha) {
 		return 1.0;
 }
 
-struct FragmentOutput
-{
-	float4 accum : SV_Target0;
-	float4 revealage : SV_Target1;
-};
 
-FragmentOutput frag (v2f i) : SV_Target
+float4 frag (v2f i) : SV_Target
 {
-	FragmentOutput o;
 
 	float power = -dot(i.pos, i.pos);
 	half alpha = exp(power);
-	if (i.col.a >= 0)
-	{
-		alpha = saturate(alpha * i.col.a);
-	}
-	else
-	{
-		// "selected" splat: magenta outline, increase opacity, magenta tint
-		half3 selectedColor = half3(1,0,1);
-		if (alpha > 7.0/255.0)
-		{
-			if (alpha < 10.0/255.0)
-			{
-				alpha = 1;
-				i.col.rgb = selectedColor;
-			}
-			alpha = saturate(alpha + 0.3);
-		}
-		i.col.rgb = lerp(i.col.rgb, selectedColor, 0.5);
-	}
+	alpha = saturate(alpha * i.col.a);
 	
     if (alpha < 1.0/255.0)
         discard;
 	
-	o.accum = float4(i.col.rgb*alpha, alpha) * weight(i.z, alpha);
-    o.revealage = float4(alpha, alpha, alpha, alpha);
-	
-	return o;
+	float d = 0.3/i.z;
+	return float4(d, d, d, 0) * alpha * weight(i.z, alpha);
+	// To use with the weighted composite:
+	// o.revealage = float4(1, 1, 1, 1);
+	// o.accum = float4(d, d, d, 1) * alpha * weight(i.z, alpha);
 }
 ENDCG
         }

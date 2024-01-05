@@ -33,6 +33,7 @@ namespace GaussianSplatting.Editor
         SerializedProperty m_PropShaderSplatsStochastic;
         SerializedProperty m_PropShaderSplatsWeighted;
         SerializedProperty m_PropShaderComposite;
+        SerializedProperty m_PropShaderCompositeDepth;
         SerializedProperty m_PropShaderDebugPoints;
         SerializedProperty m_PropShaderDebugBoxes;
         SerializedProperty m_PropShaderDepth;
@@ -83,6 +84,7 @@ namespace GaussianSplatting.Editor
             m_PropShaderSplatsWeighted = serializedObject.FindProperty("m_ShaderSplatsWeighted");
             m_PropShaderComposite = serializedObject.FindProperty("m_ShaderComposite");
             m_PropShaderCompositeWeighted = serializedObject.FindProperty("m_ShaderCompositeWeighted");
+            m_PropShaderCompositeDepth = serializedObject.FindProperty("m_ShaderCompositeDepth");
             m_PropShaderDebugPoints = serializedObject.FindProperty("m_ShaderDebugPoints");
             m_PropShaderDebugBoxes = serializedObject.FindProperty("m_ShaderDebugBoxes");
             m_PropShaderDepth = serializedObject.FindProperty("m_ShaderDepth");
@@ -158,6 +160,7 @@ namespace GaussianSplatting.Editor
                 EditorGUILayout.PropertyField(m_PropShaderSplatsWeighted);
                 EditorGUILayout.PropertyField(m_PropShaderComposite);
                 EditorGUILayout.PropertyField(m_PropShaderCompositeWeighted);
+                EditorGUILayout.PropertyField(m_PropShaderCompositeDepth);
                 EditorGUILayout.PropertyField(m_PropShaderDebugPoints);
                 EditorGUILayout.PropertyField(m_PropShaderDebugBoxes);
                 EditorGUILayout.PropertyField(m_PropCSSplatUtilities);
