@@ -106,7 +106,7 @@ namespace GaussianSplatting.Runtime
             foreach (var kvp in m_ActiveSplats)
             {
                 var gs = kvp.Item1;
-                if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended){
+                if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended || gs.m_RenderMode == GaussianSplatRenderer.RenderMode.Depth){
                     matComposite = gs.m_MatCompositeWeighted;
                 } else {
                     matComposite = gs.m_MatComposite;
@@ -131,6 +131,7 @@ namespace GaussianSplatting.Runtime
                     GaussianSplatRenderer.RenderMode.WeightedBlended => gs.m_MatSplatsWeighted,
                     GaussianSplatRenderer.RenderMode.HashedAlpha => gs.m_MatSplatsStochastic,
                     GaussianSplatRenderer.RenderMode.BlueNoiseAlpha => gs.m_MatSplatsStochastic,
+                    GaussianSplatRenderer.RenderMode.Depth => gs.m_MatDepth,
                     _ => gs.m_MatSplats
                 };
                 if (displayMat == null)
@@ -194,7 +195,7 @@ namespace GaussianSplatting.Runtime
                     // Blit back to GaussianSplatRT
                     cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
 
-                } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended) {
+                } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended || gs.m_RenderMode == GaussianSplatRenderer.RenderMode.Depth) {
 
                     // Accum
                     m_CommandBuffer.GetTemporaryRT(GaussianSplatRenderer.Props.AccumulationRT, -1, -1, 0, FilterMode.Point, GraphicsFormat.R16G16B16A16_SFloat);
@@ -272,6 +273,7 @@ namespace GaussianSplatting.Runtime
     {
         public enum RenderMode
         {
+            Depth,
             Splats,
             HashedAlpha,
             BlueNoiseAlpha,
@@ -315,6 +317,7 @@ namespace GaussianSplatting.Runtime
 
         public GaussianCutout[] m_Cutouts;
 
+        public Shader m_ShaderDepth;
         public Shader m_ShaderSplats;
         public Shader m_ShaderSplatsStochastic;
         public Shader m_ShaderSplatsWeighted;
@@ -355,6 +358,7 @@ namespace GaussianSplatting.Runtime
         GpuSorting.Args m_SorterArgs;
 
         internal Material m_MatSplats;
+        internal Material m_MatDepth;
         internal Material m_MatSplatsStochastic;
         internal Material m_MatSplatsWeighted;
         internal Material m_MatComposite;
@@ -542,6 +546,7 @@ namespace GaussianSplatting.Runtime
                 return;
 
             m_MatSplats = new Material(m_ShaderSplats) {name = "GaussianSplats"};
+            m_MatDepth = new Material(m_ShaderDepth) {name = "GaussianDepth"};
             m_MatSplatsStochastic = new Material(m_ShaderSplatsStochastic) {name = "GaussianSplatsStochastic"};
             m_MatSplatsWeighted = new Material(m_ShaderSplatsWeighted) {name = "GaussianSplatsWeighted"};
             m_MatComposite = new Material(m_ShaderComposite) {name = "GaussianClearDstAlpha"};
@@ -641,6 +646,7 @@ namespace GaussianSplatting.Runtime
             GaussianSplatRenderSystem.instance.UnregisterSplat(this);
 
             DestroyImmediate(m_MatSplats);
+            DestroyImmediate(m_MatDepth);
             DestroyImmediate(m_MatSplatsStochastic);
             DestroyImmediate(m_MatSplatsWeighted);
             DestroyImmediate(m_MatComposite);

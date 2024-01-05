@@ -19,6 +19,7 @@ CGPROGRAM
 #pragma use_dxc
 
 #include "GaussianSplatting.hlsl"
+#include "UnityCG.cginc"
 
 StructuredBuffer<uint> _OrderBuffer;
 
@@ -27,6 +28,7 @@ struct v2f
     half4 col : COLOR0;
     float2 pos : TEXCOORD0;
     float4 vertex : SV_POSITION;
+	float z: TEXCOORD1;
 };
 
 StructuredBuffer<SplatViewData> _SplatViewData;
@@ -38,12 +40,16 @@ uint _Sort;
 v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 {
     v2f o = (v2f)0;
-	if (_Sort == 1) {
+	if (_Sort)
     	instID = _OrderBuffer[instID];
-	}
+	
 	SplatViewData view = _SplatViewData[instID];
+	SplatData splat = LoadSplatData(instID);
+	o.z = UnityObjectToViewPos(float4(splat.pos,1)).z;
+
 	float4 centerClipPos = view.pos;
-	bool behindCam = centerClipPos.w <= 0;
+	bool behindCam = centerClipPos.w <= 0;	
+
 	if (behindCam)
 	{
 		o.vertex = asfloat(0x7fc00000); // NaN discards the primitive
@@ -125,10 +131,8 @@ FragmentOutput frag (v2f i) : SV_Target
 	
     if (alpha < 1.0/255.0)
         discard;
-	
-	float z = i.vertex.z / i.vertex.w;
 
-	o.accum = float4(i.col.rgb*alpha, alpha) * weight(z, alpha);
+	o.accum = float4(i.col.rgb*alpha, alpha) * weight(i.z, alpha);
     o.revealage = float4(alpha, alpha, alpha, alpha);
 	
 	return o;

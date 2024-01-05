@@ -15,7 +15,8 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
         Pass
         {
             ZWrite [_ZWrite]
-            Blend One One
+            //Blend One One
+			Blend [_SrcBlend] [_DstBlend]
             Cull Off
             
 CGPROGRAM
