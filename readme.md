@@ -5,6 +5,12 @@ Weighted Blended OIT: https://docs.nvidia.com/gameworks/content/gameworkslibrary
 Hashed Alpha OIT: https://casual-effects.com/research/Wyman2017Hashed/index.html
 
 Doesn't look as good yet, contributions welcome
+
+Example:
+
+![example](https://github.com/pablodawson/UnityGaussianSplatting/assets/74978011/96a98a09-d673-4101-82a8-48c35e2aca09)
+
+
 # OG readme:
 # Gaussian Splatting pl``ayground in Unity
 
