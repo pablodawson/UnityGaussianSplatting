@@ -143,6 +143,7 @@ namespace GaussianSplatting.Runtime
                 mpb.SetInt(GaussianSplatRenderer.Props.SplatMSAASamples, (int)gs.m_MSAASamples);
                 mpb.SetBuffer(GaussianSplatRenderer.Props.SplatChunks, gs.m_GpuChunks);
                 mpb.SetInt(GaussianSplatRenderer.Props.Sort, gs.m_Sort ? 1 : 0);
+                
                 mpb.SetInt(GaussianSplatRenderer.Props.WeightEq, gs.m_WeightEq);
                 mpb.SetBuffer(GaussianSplatRenderer.Props.SplatViewData, gs.m_GpuView);
 

@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: MIT
 Shader "Gaussian Splatting/Render Splats Stochastic"
 {
-	Properties
-	{
-		_SrcBlend("Src Blend", Float) = 8 // OneMinusDstAlpha
-		_DstBlend("Dst Blend", Float) = 1 // One
-		_ZWrite("ZWrite", Float) = 0  // Off
-	}
 
     SubShader
     {
@@ -14,6 +8,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
 
         Pass
         {
+			//Blend One One
             ZWrite On
             Cull Off
             
@@ -74,7 +69,7 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 			coord.xyz = (uint3)hatCoord;
 			coord.xyz &= 63;
 			coord.w = 0;
-			
+
 			cutoff = _HAT_BlueNoise.Load(coord).r;
 		}
 		

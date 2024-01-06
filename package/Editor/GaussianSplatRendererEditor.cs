@@ -141,6 +141,8 @@ namespace GaussianSplatting.Editor
             EditorGUILayout.Space();
             GUILayout.Label("Use sorting", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(m_PropSort);
+
+
             
             EditorGUILayout.Space();
             GUILayout.Label("Equation For Weighted", EditorStyles.boldLabel);
