@@ -7,8 +7,7 @@ Shader "Gaussian Splatting/Render Splats Depth Weighted"
         Pass
         {
             ZWrite On
-            Blend 0 Zero Zero
-			Blend 1 Zero Zero
+            Blend Zero Zero
             Cull Off
             
 CGPROGRAM
@@ -27,13 +26,12 @@ struct v2f
     half4 col : COLOR0;
     float2 pos : TEXCOORD0;
     float4 vertex : SV_POSITION;
-	float z: TEXCOORD1;
+	uint idx: TEXCOORD2;
 };
 
 StructuredBuffer<SplatViewData> _SplatViewData;
 ByteAddressBuffer _SplatSelectedBits;
 uint _SplatBitsValid;
-uint _Equation;
 uint _Sort;
 
 v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
@@ -44,7 +42,7 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 	
 	SplatViewData view = _SplatViewData[instID];
 	SplatData splat = LoadSplatData(instID);
-	o.z = UnityObjectToViewPos(float4(splat.pos,1)).z;
+	//o.z = UnityObjectToViewPos(float4(splat.pos,1)).z;
 
 	float4 centerClipPos = view.pos;
 	bool behindCam = centerClipPos.w <= 0;	
@@ -56,7 +54,6 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 	else
 	{
 		o.col.a = f16tof32(view.color.y);
-
 		uint idx = vtxID;
 		float2 quadPos = float2(idx&1, (idx>>1)&1) * 2.0 - 1.0;
 		quadPos *= 2;
@@ -66,37 +63,23 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 		float2 deltaScreenPos = (quadPos.x * view.axis1 + quadPos.y * view.axis2) * 2 / _ScreenParams.xy;
 		o.vertex = centerClipPos;
 		o.vertex.xy += deltaScreenPos * centerClipPos.w;
+		o.idx = idx;
 	}
     return o;
 }
 
-float weight(float z, float alpha) {
-	if (_Equation == 1)
-		return pow(z, -2.5);
-	else if (_Equation == 2)
-		return max(1e-2, min(3 * 1e3, 10.0/(1e-5 + pow(z/5, 2) + pow(z/200, 6))));
-	else if (_Equation == 3)
-		return max(1e-2, min(3 * 1e3, 0.03/(1e-5 + pow(z/200, 4))));
-	else
-		return 1.0;
-}
 
 
-float4 frag (v2f i) : SV_Target
+float4 frag (v2f i, out float depth: SV_Depth, out uint coverage: SV_Coverage) : SV_Target
 {
-
 	float power = -dot(i.pos, i.pos);
-	half alpha = exp(power);
-	alpha = saturate(alpha * i.col.a);
+	half alpha = saturate(exp(power) * i.col.a);
+	coverage = createStochasticMask(alpha, i.vertex.xyz, i.idx);
+	//float mask = step(alpha, 0.2);
+	depth = i.vertex.z; // * (1-mask);
 	
-    if (alpha < 1.0/255.0)
-        discard;
-	
-	float d = 0.3/i.z;
-	return float4(d, d, d, 0) * alpha * weight(i.z, alpha);
-	// To use with the weighted composite:
-	// o.revealage = float4(1, 1, 1, 1);
-	// o.accum = float4(d, d, d, 1) * alpha * weight(i.z, alpha);
+
+	return half4(0,0,0,0);
 }
 ENDCG
         }

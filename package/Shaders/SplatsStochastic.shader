@@ -14,10 +14,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
 
         Pass
         {
-            ZWrite [_ZWrite]
-            //Blend One One
-			//ZTest Always
-			Blend [_SrcBlend] [_DstBlend]
+            ZWrite On
             Cull Off
             
 CGPROGRAM
@@ -58,7 +55,7 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 {
 	uint mask = 0;
 
-	for (uint i = 0; i < 8; i++)
+	for (uint i = 0; i < _SplatMSAASamples; i++)
 	{
 		float3 seed = 0;
 		float cutoff = 0.5;
@@ -91,10 +88,6 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 {
     v2f o = (v2f)0;
 	
-	if (_Sort==1){
-		instID = _OrderBuffer[instID];
-	}
-
 	SplatViewData view = _SplatViewData[instID];
 	float4 centerClipPos = view.pos;
 	bool behindCam = centerClipPos.w <= 0;

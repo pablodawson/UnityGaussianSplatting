@@ -133,15 +133,9 @@ namespace GaussianSplatting.Runtime
                     GaussianSplatRenderer.RenderMode.WeightedBlended => gs.m_MatSplatsWeighted,
                     GaussianSplatRenderer.RenderMode.HashedAlpha => gs.m_MatSplatsStochastic,
                     GaussianSplatRenderer.RenderMode.BlueNoiseAlpha => gs.m_MatSplatsStochastic,
-                    GaussianSplatRenderer.RenderMode.Depth => gs.m_MatDepth,
                     _ => gs.m_MatSplats
                 };
                 if (displayMat == null)
-                    continue;
-                
-                Material matDepth = gs.m_MatDepth;
-
-                if (matDepth == null)
                     continue;
 
                 gs.SetAssetDataOnMaterial(mpb);
@@ -197,10 +191,10 @@ namespace GaussianSplatting.Runtime
                     cmb.ClearRenderTarget(RTClearFlags.ColorDepth, new Color(0, 0, 0, 0), 1.0f, 0);
 
                     // Set depth buffer
-                    cmb.BeginSample(s_ProfDepth);
-                    cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, matDepth, 0, topology, indexCount, instanceCount, mpb);
-                    cmb.EndSample(s_ProfDepth);
-                    
+                    //cmb.BeginSample(s_ProfDepth);
+                    //cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, matDepth, 0, topology, indexCount, instanceCount, mpb);
+                    //cmb.EndSample(s_ProfDepth);
+
                     // Render color
                     cmb.BeginSample(s_ProfDraw);
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
@@ -226,7 +220,7 @@ namespace GaussianSplatting.Runtime
                     mrt[0] = new(GaussianSplatRenderer.Props.AccumulationRT);
                     mrt[1] = new(GaussianSplatRenderer.Props.RevealageRT);
                     m_CommandBuffer.SetRenderTarget(mrt, BuiltinRenderTextureType.CurrentActive);
-
+                    
                     cmb.BeginSample(s_ProfDraw);
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
                     cmb.EndSample(s_ProfDraw);
@@ -331,12 +325,10 @@ namespace GaussianSplatting.Runtime
 
         public GaussianCutout[] m_Cutouts;
 
-        public Shader m_ShaderDepth;
         public Shader m_ShaderSplats;
         public Shader m_ShaderSplatsStochastic;
         public Shader m_ShaderSplatsWeighted;
         public Shader m_ShaderComposite;
-        public Shader m_ShaderCompositeDepth;
         public Shader m_ShaderCompositeWeighted;
         public Shader m_ShaderDebugPoints;
         public Shader m_ShaderDebugBoxes;
@@ -373,13 +365,11 @@ namespace GaussianSplatting.Runtime
         GpuSorting.Args m_SorterArgs;
 
         internal Material m_MatSplats;
-        internal Material m_MatDepth;
         internal Material m_MatSplatsStochastic;
         internal Material m_MatSplatsWeighted;
         internal Material m_MatComposite;
         internal Material m_MatCompositeWeighted;
         internal Material m_MatDebugPoints;
-        internal Material m_MatDepthWrite;
         internal Material m_MatDebugBoxes;
 
         internal int m_FrameCounter;
@@ -562,7 +552,6 @@ namespace GaussianSplatting.Runtime
                 return;
 
             m_MatSplats = new Material(m_ShaderSplats) {name = "GaussianSplats"};
-            m_MatDepth = new Material(m_ShaderDepth) {name = "GaussianDepthWrite"};
             m_MatSplatsStochastic = new Material(m_ShaderSplatsStochastic) {name = "GaussianSplatsStochastic"};
             m_MatSplatsWeighted = new Material(m_ShaderSplatsWeighted) {name = "GaussianSplatsWeighted"};
             m_MatComposite = new Material(m_ShaderComposite) {name = "GaussianClearDstAlpha"};
@@ -662,7 +651,6 @@ namespace GaussianSplatting.Runtime
             GaussianSplatRenderSystem.instance.UnregisterSplat(this);
 
             DestroyImmediate(m_MatSplats);
-            DestroyImmediate(m_MatDepth);
             DestroyImmediate(m_MatSplatsStochastic);
             DestroyImmediate(m_MatSplatsWeighted);
             DestroyImmediate(m_MatComposite);
