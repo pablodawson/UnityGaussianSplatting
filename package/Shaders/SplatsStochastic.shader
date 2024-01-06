@@ -66,12 +66,15 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 		} else {
 
 			float3 hatCoord;
-			hatCoord.xy = vertex.xy;
-			hatCoord.z = (idx + 1) * (i + 1);
+			hatCoord.x = vertex.x + idx * 0.123;
+			hatCoord.y = vertex.y + i * 0.456;
+			hatCoord.z = (idx + i) * 0.789;
+
 			uint4 coord;
 			coord.xyz = (uint3)hatCoord;
 			coord.xyz &= 63;
 			coord.w = 0;
+			
 			cutoff = _HAT_BlueNoise.Load(coord).r;
 		}
 		

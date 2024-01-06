@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -118,7 +119,7 @@ namespace GaussianSplatting.Runtime
 
                 // sort
                 var matrix = gs.transform.localToWorldMatrix;
-                if (gs.m_FrameCounter % gs.m_SortNthFrame == 0)
+                if ((gs.m_FrameCounter % gs.m_SortNthFrame == 0) && (gs.m_Sort || gs.m_FrameCounter == 0))
                     gs.SortPoints(cmb, cam, matrix);
                 ++gs.m_FrameCounter;
 
@@ -190,13 +191,9 @@ namespace GaussianSplatting.Runtime
                     cmb.SetRenderTarget(GaussianSplatRenderer.Props.IntermediateRT);
                     cmb.ClearRenderTarget(RTClearFlags.ColorDepth, new Color(0, 0, 0, 0), 1.0f, 0);
 
-                    // Set depth buffer
-                    //cmb.BeginSample(s_ProfDepth);
-                    //cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, matDepth, 0, topology, indexCount, instanceCount, mpb);
-                    //cmb.EndSample(s_ProfDepth);
-
                     // Render color
                     cmb.BeginSample(s_ProfDraw);
+                    // Output sum of opacities and "normal" opacity
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
                     cmb.EndSample(s_ProfDraw);
 
