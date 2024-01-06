@@ -4,8 +4,7 @@ Weighted Blended OIT: https://docs.nvidia.com/gameworks/content/gameworkslibrary
 
 Hashed Alpha OIT: https://casual-effects.com/research/Wyman2017Hashed/index.html
 
-Hashed Alpha works only on sorted splats, if you know how to fix that please do a PR!
- 
+Doesn't look as good yet, contributions welcome
 # OG readme:
 # Gaussian Splatting pl``ayground in Unity
 
