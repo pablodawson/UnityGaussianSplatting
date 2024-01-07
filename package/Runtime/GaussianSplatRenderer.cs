@@ -194,10 +194,9 @@ namespace GaussianSplatting.Runtime
 
                     // Render color
                     cmb.BeginSample(s_ProfDraw);
-                    // Output sum of opacities and "normal" opacity
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
                     cmb.EndSample(s_ProfDraw);
-
+                    
                     // Blit back to GaussianSplatRT
                     cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
 

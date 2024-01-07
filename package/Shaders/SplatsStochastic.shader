@@ -8,7 +8,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
 
         Pass
         {
-			//Blend One One
+			//Blend One One -> uncomment for alpha correction
             ZWrite On
             Cull Off
             
