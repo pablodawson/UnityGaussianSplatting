@@ -181,14 +181,16 @@ namespace GaussianSplatting.Runtime
                     } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.HashedAlpha) {
                         mpb.SetInt(GaussianSplatRenderer.Props.UseBlueNoise, 0);
                     }
-                    
+
                     // Temporary RenderTexture for MSAA and depth
-                    RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor(-1, -1, RenderTextureFormat.Default);
+                    float scale = 1.0f + gs.m_SuperSampling * 0.25f;
+
+                    RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor((int)Mathf.Floor(cam.pixelWidth*scale), (int)Mathf.Floor(cam.pixelHeight*scale), RenderTextureFormat.Default);
                     msaaRTDesc.msaaSamples = (int)gs.m_MSAASamples;
                     msaaRTDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
                     msaaRTDesc.depthBufferBits = 16;
                     
-                    cmb.GetTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT, msaaRTDesc, FilterMode.Point);
+                    cmb.GetTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT, msaaRTDesc, FilterMode.Bilinear);
                     cmb.SetRenderTarget(GaussianSplatRenderer.Props.IntermediateRT);
                     cmb.ClearRenderTarget(RTClearFlags.ColorDepth, new Color(0, 0, 0, 0), 1.0f, 0);
 
@@ -196,9 +198,11 @@ namespace GaussianSplatting.Runtime
                     cmb.BeginSample(s_ProfDraw);
                     cmb.DrawProcedural(gs.m_GpuIndexBuffer, matrix, displayMat, 0, topology, indexCount, instanceCount, mpb);
                     cmb.EndSample(s_ProfDraw);
-                    
+
                     // Blit back to GaussianSplatRT
                     cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
+                    cmb.ReleaseTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT);
+
 
                 } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended || gs.m_RenderMode == GaussianSplatRenderer.RenderMode.Depth) {
 
@@ -254,7 +258,7 @@ namespace GaussianSplatting.Runtime
 
             InitialClearCmdBuffer(cam);
 
-            m_CommandBuffer.GetTemporaryRT(GaussianSplatRenderer.Props.GaussianSplatRT, -1, -1, 0, FilterMode.Point, GraphicsFormat.R16G16B16A16_SFloat);
+            m_CommandBuffer.GetTemporaryRT(GaussianSplatRenderer.Props.GaussianSplatRT, -1, -1, 0, FilterMode.Bilinear, GraphicsFormat.R16G16B16A16_SFloat);
             m_CommandBuffer.SetRenderTarget(GaussianSplatRenderer.Props.GaussianSplatRT, BuiltinRenderTextureType.CurrentActive);
             m_CommandBuffer.ClearRenderTarget(RTClearFlags.Color, new Color(0, 0, 0, 0), 0, 0);
 
@@ -296,6 +300,9 @@ namespace GaussianSplatting.Runtime
             Four = 4,
             Eight = 8
         }
+        
+        [Range(0, 6)] [Tooltip("Super sampling factor for splats")]
+        public int m_SuperSampling = 0;
 
         public GaussianSplatAsset m_Asset;
 
@@ -336,6 +343,8 @@ namespace GaussianSplatting.Runtime
 
         [Range(0, 3)]
         public int m_WeightEq = 1;
+
+        
 
         int m_SplatCount; // initially same as asset splat count, but editing can change this
         GraphicsBuffer m_GpuSortDistances;

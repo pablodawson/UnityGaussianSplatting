@@ -8,7 +8,7 @@ Shader "Gaussian Splatting/Render Splats Stochastic"
 
         Pass
         {
-			//Blend One One -> uncomment for alpha correction
+			//Blend One One
             ZWrite On
             Cull Off
             
@@ -56,7 +56,7 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 		float cutoff = 0.5;
 
 		if (_UseBlueNoise == 0){
-			float3 seed = vertex + (idx + 1) * (i + 1);
+			float3 seed = vertex + (idx + 1) * (i + 1) + _Time;
 			cutoff = hash13(seed);
 		} else {
 
@@ -73,12 +73,11 @@ uint createStochasticMask(float alpha, float3 vertex, uint idx)
 			cutoff = _HAT_BlueNoise.Load(coord).r;
 		}
 		
-		if (alpha > cutoff)
+		if (pow(alpha,1.3) > cutoff)
 		{
 			mask |= 1 << i;
 		}
 	}
-
 	return mask;
 }
 
@@ -151,8 +150,17 @@ half4 frag (v2f i, out uint coverage : SV_Coverage) : SV_Target
 		i.col.rgb = lerp(i.col.rgb, selectedColor, 0.5);
 	}
 	
-    if (alpha < 1.0/255.0)
+    if (alpha < 10.0/255.0)
         discard;
+
+	float intensity = 0.;
+
+	// Option 1 -> Sharpening
+	//half sharpenedAlpha = alpha / max(fwidth(alpha), 0.05) * 0.5;
+	//alpha = lerp(alpha, sharpenedAlpha, intensity);
+
+	// Option 2 -> Blur
+	alpha = alpha*0.8 + fwidth(alpha) * intensity;
 
 	coverage = createStochasticMask(alpha, i.vertex.xyz, i.idx);
 

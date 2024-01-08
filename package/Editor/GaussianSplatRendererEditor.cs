@@ -43,6 +43,7 @@ namespace GaussianSplatting.Editor
         SerializedProperty m_PropMSAASamples;
         SerializedProperty m_PropSort;
         SerializedProperty m_PropWeightEq;
+        SerializedProperty m_PropSuperSampling;
 
         bool m_ResourcesExpanded = false;
         int m_CameraIndex = 0;
@@ -89,6 +90,7 @@ namespace GaussianSplatting.Editor
             m_PropMSAASamples = serializedObject.FindProperty("m_MSAASamples");
             m_PropSort = serializedObject.FindProperty("m_Sort");
             m_PropWeightEq = serializedObject.FindProperty("m_WeightEq");
+            m_PropSuperSampling = serializedObject.FindProperty("m_SuperSampling");
 
             s_AllEditors.Add(this);
         }
@@ -147,6 +149,11 @@ namespace GaussianSplatting.Editor
             EditorGUILayout.Space();
             GUILayout.Label("Equation For Weighted", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(m_PropWeightEq);
+
+            EditorGUILayout.Space();
+            
+            GUILayout.Label("SuperSampling level (1X to 3X)", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(m_PropSuperSampling);
 
             EditorGUILayout.Space();
             m_ResourcesExpanded = EditorGUILayout.Foldout(m_ResourcesExpanded, "Resources", true, EditorStyles.foldoutHeader);

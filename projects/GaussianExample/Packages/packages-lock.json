@@ -66,6 +66,15 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.recorder": {
+      "version": "4.0.2",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.timeline": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.render-pipelines.core": {
       "version": "14.0.8",
       "depth": 1,
@@ -115,6 +124,18 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.timeline": {
+      "version": "1.7.5",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.modules.director": "1.0.0",
+        "com.unity.modules.animation": "1.0.0",
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.particlesystem": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.ugui": {
       "version": "1.0.0",
       "depth": 2,
@@ -123,6 +144,15 @@
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
       }
+    },
+    "com.xienaiwen.taa": {
+      "version": "https://github.com/sienaiwun/TAA_Unity_URP.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.render-pipelines.universal": "7.x.x"
+      },
+      "hash": "e8fdfda8abd27d624b85287b504346a9bae1125b"
     },
     "org.nesnausk.gaussian-splatting": {
       "version": "file:../../../package",
