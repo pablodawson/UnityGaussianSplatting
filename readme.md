@@ -4,11 +4,16 @@ Weighted Blended OIT: https://docs.nvidia.com/gameworks/content/gameworkslibrary
 
 Hashed Alpha OIT: https://casual-effects.com/research/Wyman2017Hashed/index.html
 
-Doesn't look as good yet, contributions welcome
+## Tasks:
+- [x] Alpha Correction
+- [ ] Add another noise reduction method (Bilateral/median filtering for example)
+- [ ] URP support. Render Textures with MSAA enabled makes it crash
 
-Example:
+## Example:
 
-![example](https://github.com/pablodawson/UnityGaussianSplatting/assets/74978011/96a98a09-d673-4101-82a8-48c35e2aca09)
+![bike no alpha correction](https://github.com/pablodawson/UnityGaussianSplatting/assets/74978011/6b570560-0ae4-4bb4-b25f-b529f540b1a0)
+
+
 
 
 # OG readme:
