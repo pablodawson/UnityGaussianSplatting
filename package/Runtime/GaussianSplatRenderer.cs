@@ -11,6 +11,8 @@ using Unity.Profiling.LowLevel;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
 
 namespace GaussianSplatting.Runtime
 {
@@ -102,7 +104,7 @@ namespace GaussianSplatting.Runtime
         }
 
         // ReSharper disable once MemberCanBePrivate.Global - used by HDRP/URP features that are not always compiled
-        public Material SortAndRenderSplats(Camera cam, CommandBuffer cmb)
+        public Material SortAndRenderSplats(Camera cam, CommandBuffer cmb, RTHandle target = null)
         {
             Material matComposite = null;
 
@@ -200,9 +202,14 @@ namespace GaussianSplatting.Runtime
                     cmb.EndSample(s_ProfDraw);
 
                     // Blit back to GaussianSplatRT
-                    cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
+                    if (target!= null){
+                        cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, target.rt);
+                    } else {
+                        cmb.Blit(GaussianSplatRenderer.Props.IntermediateRT, GaussianSplatRenderer.Props.GaussianSplatRT);
+                    }
+                    
                     cmb.ReleaseTemporaryRT(GaussianSplatRenderer.Props.IntermediateRT);
-
+                    
 
                 } else if (gs.m_RenderMode == GaussianSplatRenderer.RenderMode.WeightedBlended || gs.m_RenderMode == GaussianSplatRenderer.RenderMode.Depth) {
 

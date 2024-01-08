@@ -18,14 +18,12 @@ namespace GaussianSplatting.Runtime
         class GSRenderPass : ScriptableRenderPass
         {
             RTHandle m_RenderTarget;
-            RTHandle m_IntermediateTarget;
             internal ScriptableRenderer m_Renderer = null;
             internal CommandBuffer m_Cmb = null;
 
             public void Dispose()
             {
                 m_RenderTarget?.Release();
-                m_IntermediateTarget?.Release();
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -37,17 +35,19 @@ namespace GaussianSplatting.Runtime
                 RenderingUtils.ReAllocateIfNeeded(ref m_RenderTarget, rtDesc, FilterMode.Point, TextureWrapMode.Clamp, name: "_GaussianSplatRT");
                 cmd.SetGlobalTexture(m_RenderTarget.name, m_RenderTarget.nameID);
 
+                /*
                 RenderTextureDescriptor msaaRTDesc = new RenderTextureDescriptor(rtDesc.width, rtDesc.height, RenderTextureFormat.Default);
                 msaaRTDesc.msaaSamples = (int)MSAASamples.MSAA8x;
                 msaaRTDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
                 msaaRTDesc.bindMS = true;
                 //msaaRTDesc.depthBufferBits = 16;
                 RenderingUtils.ReAllocateIfNeeded(ref m_IntermediateTarget, msaaRTDesc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: "_IntermediateRT");
-                
-                //ConfigureTarget(m_RenderTarget, m_Renderer.cameraDepthTargetHandle);
-                //ConfigureClear(ClearFlag.Color, new Color(0,0,0,0));
-                ConfigureTarget(m_IntermediateTarget, m_Renderer.cameraDepthTargetHandle);
-                ConfigureClear(ClearFlag.All, new Color(0,0,0,0));
+                */
+
+                ConfigureTarget(m_RenderTarget, m_Renderer.cameraDepthTargetHandle);
+                ConfigureClear(ClearFlag.Color, new Color(0,0,0,0));
+                //ConfigureTarget(m_IntermediateTarget, m_Renderer.cameraDepthTargetHandle);
+                //ConfigureClear(ClearFlag.All, new Color(0,0,0,0));
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -56,9 +56,9 @@ namespace GaussianSplatting.Runtime
                     return;
 
                 // add sorting, view calc and drawing commands for each splat object
-                Material matComposite = GaussianSplatRenderSystem.instance.SortAndRenderSplats(renderingData.cameraData.camera, m_Cmb);
+                Material matComposite = GaussianSplatRenderSystem.instance.SortAndRenderSplats(renderingData.cameraData.camera, m_Cmb, m_RenderTarget);
 
-                Blitter.BlitCameraTexture(m_Cmb, m_IntermediateTarget, m_RenderTarget, 0f, false);
+                //Blitter.BlitCameraTexture(m_Cmb, m_IntermediateTarget, m_RenderTarget, 0f, false);
                 
                 // compose
                 m_Cmb.BeginSample(GaussianSplatRenderSystem.s_ProfCompose);

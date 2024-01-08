@@ -283,7 +283,7 @@ Camera:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_RenderingPath: -1
+  m_RenderingPath: 1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
@@ -338,15 +338,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c12d929a7f62c48adbe9ff45c9a33ff0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_SuperSampling: 0
   m_Asset: {fileID: 11400000, guid: 7df36b98b9cfb254896d46c48aacbbf0, type: 2}
   m_SplatScale: 1.022
   m_OpacityScale: 1
   m_SHOrder: 3
   m_SHOnly: 0
   m_SortNthFrame: 1
-  m_MSAASamples: 8
+  m_MSAASamples: 2
   m_Sort: 0
-  m_RenderMode: 3
+  m_RenderMode: 2
   m_PointDisplaySize: 3
   m_Cutouts: []
   m_ShaderSplats: {fileID: 4800000, guid: ed800126ae8844a67aad1974ddddd59c, type: 3}
